@@ -21,8 +21,6 @@ interface PredictionData {
   lastUpdated: string;
 }
 
-const NO_MODEL_ERROR_PREFIX = 'No trained LSTM model found for';
-
 export function LSTMPredictionCard({ symbol }: LSTMPredictionCardProps) {
   const [prediction, setPrediction] = useState<PredictionData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,40 +38,31 @@ export function LSTMPredictionCard({ symbol }: LSTMPredictionCardProps) {
           body: JSON.stringify({ symbol, daysInFuture: 1 }),
         });
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => null);
-          const errorMessage = errorData?.error || 'Failed to fetch prediction';
+        const data = await response.json().catch(() => null);
 
-          if (response.status === 404 && errorMessage.startsWith(NO_MODEL_ERROR_PREFIX)) {
-            setPrediction(null);
-            setError(
-              'No trained prediction model is available yet for this stock. Train the model via /api/ml/train and reload this page.'
-            );
-            return;
-          }
-
+        if (!response.ok || !data?.success || !data?.data) {
+          const errorMessage =
+            data?.error ||
+            data?.notice ||
+            'Prediction service returned no data. Verify API credentials and historical candles.';
           throw new Error(errorMessage);
         }
 
-        const data = await response.json();
-
         // Transform API response to our format
-        if (data.success && data.data) {
-          const pred = data.data;
-          setPrediction({
-            symbol,
-            currentPrice: pred.currentPrice || 0,
-            predictedPrice: pred.predictedPrice || 0,
-            change: (pred.predictedPrice || 0) - (pred.currentPrice || 0),
-            changePercent: pred.changePercent || 0,
-            r2Score: pred.r2Score || 0,
-            rmse: pred.rmse || 0,
-            confidence: pred.r2Score > 0.8 ? 'High' : pred.r2Score > 0.6 ? 'Medium' : 'Low',
-            daysAhead: 1,
-            modelStatus: 'trained',
-            lastUpdated: new Date().toLocaleString(),
-          });
-        }
+        const pred = data.data;
+        setPrediction({
+          symbol,
+          currentPrice: pred.currentPrice || 0,
+          predictedPrice: pred.predictedPrice || 0,
+          change: (pred.predictedPrice || 0) - (pred.currentPrice || 0),
+          changePercent: pred.changePercent || 0,
+          r2Score: pred.r2Score || 0,
+          rmse: pred.rmse || 0,
+          confidence: pred.r2Score > 0.8 ? 'High' : pred.r2Score > 0.6 ? 'Medium' : 'Low',
+          daysAhead: pred.daysAhead || 1,
+          modelStatus: pred.modelStatus || 'trained',
+          lastUpdated: pred.lastUpdated || new Date().toLocaleString(),
+        });
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : 'Unknown error';
         console.warn(`Prediction warning for ${symbol}:`, errorMsg);

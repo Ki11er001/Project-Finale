@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/database/mongoose';
 import { StockPriceModel } from '@/database/models/stockPrice.model';
 import { getModelMetadata, predictWithModel } from '@/lib/ml/modelTrainer';
+import { fetchAndStoreHistoricalData, predictStockPrice } from '@/lib/actions/prediction.actions';
 
 interface PredictionRequestBody {
   symbol?: string;
@@ -11,33 +12,86 @@ interface PredictionRequestBody {
 async function buildPredictionResponse(symbol: string, daysInFuture: number) {
   await connectToDatabase();
 
+  const fallbackPrediction = async (reason: string) => {
+    try {
+      const fallback = await predictStockPrice(symbol, daysInFuture);
+      const latestClose = await StockPriceModel.findOne(
+        { symbol },
+        { close: 1, date: 1 },
+        { sort: { date: -1 } }
+      ).lean();
+
+      const currentPrice = latestClose?.close ?? fallback.forecastedPrice;
+
+      return NextResponse.json({
+        success: true,
+        source: 'fallback-statistical-model',
+        notice: reason,
+        data: {
+          symbol,
+          currentPrice: Math.round(currentPrice * 100) / 100,
+          predictedPrice: fallback.forecastedPrice,
+          changePercent: fallback.changePercent,
+          r2Score: fallback.modelParameters?.rSquared ?? 0,
+          rmse: 0,
+          confidence:
+            fallback.confidenceScore > 80
+              ? 'High'
+              : fallback.confidenceScore > 60
+                ? 'Medium'
+                : 'Low',
+          daysAhead: daysInFuture,
+          modelStatus: 'trained',
+          lastUpdated: new Date().toISOString(),
+        },
+      });
+    } catch (fallbackError) {
+      console.error('[Prediction API] Fallback prediction failed:', fallbackError);
+      return NextResponse.json(
+        {
+          success: false,
+          code: 'PREDICTION_UNAVAILABLE',
+          error:
+            'Prediction unavailable. LSTM model is missing and fallback model could not run. Ensure price history is imported and try again.',
+        },
+        { status: 500 }
+      );
+    }
+  };
+
   const metadata = getModelMetadata(symbol);
   if (!metadata) {
-    return NextResponse.json(
-      {
-        success: false,
-        code: 'MODEL_NOT_TRAINED',
-        error: `No trained LSTM model found for ${symbol}. Train the model first via /api/ml/train.`,
-      },
-      { status: 200 }
+    return await fallbackPrediction(
+      `No trained LSTM model found for ${symbol}. Served fallback statistical prediction instead.`
     );
   }
 
-  const latestPrice = await StockPriceModel.findOne(
+  let latestPrice = await StockPriceModel.findOne(
     { symbol },
     { close: 1, date: 1 },
     { sort: { date: -1 } }
   ).lean();
 
   if (!latestPrice) {
-    return NextResponse.json(
-      {
-        success: false,
-        code: 'NO_PRICE_DATA',
-        error: `No historical price data found for ${symbol}. Import stock candles first.`,
-      },
-      { status: 200 }
-    );
+    try {
+      await fetchAndStoreHistoricalData(symbol, 'D', 365);
+    } catch (importError) {
+      console.warn(`[Prediction API] Could not auto-import candles for ${symbol}:`, importError);
+    }
+
+    const refreshedPrice = await StockPriceModel.findOne(
+      { symbol },
+      { close: 1, date: 1 },
+      { sort: { date: -1 } }
+    ).lean();
+
+    if (!refreshedPrice) {
+      return await fallbackPrediction(
+        `No local historical candles found for ${symbol}. Attempted fallback prediction.`
+      );
+    }
+
+    latestPrice = refreshedPrice;
   }
 
   const predictedPrice = await predictWithModel(symbol, metadata.lookbackPeriod ?? 30);

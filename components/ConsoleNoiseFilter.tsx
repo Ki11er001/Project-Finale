@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 
 const IGNORED_MESSAGES = [
+  'Deprecation warning: use moment.updateLocale(localeName, config)',
   'use moment.updateLocale(localeName, config) to change an existing locale',
   'Chart.DataProblemModel:Couldn\'t load support portal problems',
   'Fetch:/support/support-portal-problems/?language=',
@@ -11,9 +12,17 @@ const IGNORED_MESSAGES = [
 ];
 
 const shouldIgnore = (args: unknown[]) => {
-  const text = args
-    .map((arg) => (typeof arg === 'string' ? arg : JSON.stringify(arg)))
-    .join(' ');
+  const toText = (arg: unknown) => {
+    if (typeof arg === 'string') return arg;
+
+    try {
+      return JSON.stringify(arg);
+    } catch {
+      return String(arg);
+    }
+  };
+
+  const text = args.map((arg) => toText(arg)).join(' ');
 
   return IGNORED_MESSAGES.some((message) => text.includes(message));
 };

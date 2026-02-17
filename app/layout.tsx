@@ -43,10 +43,18 @@ export default function RootLayout({
     const shouldBypass = (value) =>
       typeof value === 'string' && blocked.some((endpoint) => value.includes(endpoint));
 
+    const toText = (arg) => {
+      if (typeof arg === 'string') return arg;
+
+      try {
+        return JSON.stringify(arg);
+      } catch {
+        return String(arg);
+      }
+    };
+
     const shouldIgnore = (args) => {
-      const text = args
-        .map((arg) => (typeof arg === 'string' ? arg : JSON.stringify(arg)))
-        .join(' ');
+      const text = args.map((arg) => toText(arg)).join(' ');
 
       return ignored.some((message) => text.includes(message));
     };

@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 
@@ -47,7 +49,7 @@ export function PredictionCard({ symbol, showFetchButton = true }: PredictionCar
     setError(null);
 
     try {
-      const response = await fetch('/api/predictions/predict', {
+      const response = await fetch('/api/predictions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ symbol: symbol.toUpperCase(), daysInFuture: 30 }),

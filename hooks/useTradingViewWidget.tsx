@@ -6,24 +6,21 @@ const useTradingViewWidget = (scriptUrl: string, config: Record<string, unknown>
     const serializedConfig = useMemo(() => JSON.stringify(config), [config]);
 
     useEffect(() => {
-        if (!containerRef.current) return;
-        if (containerRef.current.dataset.loaded) return;
-        containerRef.current.innerHTML = `<div class="tradingview-widget-container__widget" style="width: 100%; height: ${height}px;"></div>`;
+        const container = containerRef.current;
 
-        const script = document.createElement("script");
-        script.type = "text/javascript";
-        script.src = scriptUrl;
-        script.async = true;
-        script.innerHTML = serializedConfig;
-
-        containerRef.current.appendChild(script);
-        containerRef.current.dataset.loaded = 'true';
+        if (!container) return;
+        if (container.dataset.loaded) return;
+        container.innerHTML = `
+          <div class="tradingview-widget-container__widget" style="width: 100%; height: ${height}px;"></div>
+          <script type="text/javascript" src="${scriptUrl}" async>
+            ${serializedConfig}
+          </script>
+        `;
+        container.dataset.loaded = 'true';
 
         return () => {
-            if(containerRef.current) {
-                containerRef.current.innerHTML = '';
-                delete containerRef.current.dataset.loaded;
-            }
+            container.innerHTML = '';
+            delete container.dataset.loaded;
         }
     }, [scriptUrl, serializedConfig, height])
 

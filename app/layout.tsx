@@ -33,7 +33,7 @@ export default function RootLayout({
 
     const ignored = [
       'use moment.updateLocale(localeName, config) to change an existing locale',
-      'Chart.DataProblemModel:Couldn\'t load support portal problems',
+      "Chart.DataProblemModel:Couldn't load support portal problems",
       'Fetch:/support/support-portal-problems/?language=',
       'telemetry.tradingview.com/widget/report',
       'ERR_BLOCKED_BY_ADBLOCKER',

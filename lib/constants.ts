@@ -87,7 +87,6 @@ export const MARKET_OVERVIEW_WIDGET_CONFIG = {
             ],
         },
     ],
-    support_host: 'https://www.tradingview.com', // TradingView host
     backgroundColor: '#141414', // background color
     width: '100%', // full width
     height: 600, // height in px

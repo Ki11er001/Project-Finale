@@ -16,9 +16,10 @@ async function buildPredictionResponse(symbol: string, daysInFuture: number) {
     return NextResponse.json(
       {
         success: false,
+        code: 'MODEL_NOT_TRAINED',
         error: `No trained LSTM model found for ${symbol}. Train the model first via /api/ml/train.`,
       },
-      { status: 404 }
+      { status: 200 }
     );
   }
 
@@ -32,9 +33,10 @@ async function buildPredictionResponse(symbol: string, daysInFuture: number) {
     return NextResponse.json(
       {
         success: false,
+        code: 'NO_PRICE_DATA',
         error: `No historical price data found for ${symbol}. Import stock candles first.`,
       },
-      { status: 404 }
+      { status: 200 }
     );
   }
 

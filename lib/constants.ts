@@ -194,6 +194,7 @@ export const CANDLE_CHART_WIDGET_CONFIG = (symbol: string) => ({
     withdateranges: false,
     compareSymbols: [],
     studies: [],
+    support_host: 'https://www.tradingview.com',
     width: '100%',
     height: 600,
 });
@@ -219,6 +220,7 @@ export const BASELINE_WIDGET_CONFIG = (symbol: string) => ({
     withdateranges: false,
     compareSymbols: [],
     studies: [],
+    support_host: 'https://www.tradingview.com',
     width: '100%',
     height: 600,
 });

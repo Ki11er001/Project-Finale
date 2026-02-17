@@ -18,11 +18,28 @@ const shouldIgnore = (args: unknown[]) => {
   return IGNORED_MESSAGES.some((message) => text.includes(message));
 };
 
+const IGNORED_ENDPOINTS = [
+  'tradingview-widget.com/support/support-portal-problems',
+  'telemetry.tradingview.com/widget/report',
+];
+
+const shouldBypassRequest = (input: RequestInfo | URL) => {
+  const requestUrl =
+    typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url;
+
+  return IGNORED_ENDPOINTS.some((endpoint) => requestUrl.includes(endpoint));
+};
+
 export default function ConsoleNoiseFilter() {
   useEffect(() => {
     const originalWarn = console.warn;
     const originalError = console.error;
     const originalLog = console.log;
+    const originalFetch = window.fetch;
 
     console.warn = (...args) => {
       if (shouldIgnore(args)) return;
@@ -39,10 +56,19 @@ export default function ConsoleNoiseFilter() {
       originalLog(...args);
     };
 
+    window.fetch = async (input, init) => {
+      if (shouldBypassRequest(input)) {
+        return new Response(null, { status: 204, statusText: 'No Content' });
+      }
+
+      return originalFetch(input, init);
+    };
+
     return () => {
       console.warn = originalWarn;
       console.error = originalError;
       console.log = originalLog;
+      window.fetch = originalFetch;
     };
   }, []);
 

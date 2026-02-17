@@ -284,7 +284,8 @@ export async function trainModel(config: TrainingConfig): Promise<ModelMetrics> 
  */
 export async function loadTrainedModel(symbol: string): Promise<tf.LayersModel | null> {
   try {
-    const modelPath = `file://./ml-models/${symbol.toUpperCase()}-model.json`;
+    // Models are saved to a directory (e.g. ./ml-models/AAPL-model/model.json)
+    const modelPath = `file://./ml-models/${symbol.toUpperCase()}-model/model.json`;
     const model = await tf.loadLayersModel(modelPath);
     return model;
   } catch (error) {

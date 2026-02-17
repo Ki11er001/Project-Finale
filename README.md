@@ -158,6 +158,18 @@ npx inngest-cli@latest dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser to view the project.
 
+### Common browser console messages in development
+
+If you see messages like these in the browser console while running locally:
+
+- `Download the React DevTools for a better development experience`
+- `[Fast Refresh] rebuilding`
+- `[Fast Refresh] done in XXXms`
+
+these are expected development logs from React/Next.js and usually do **not** indicate a problem.
+Only treat it as an issue if you also see red error messages, failed API/network requests,
+or the UI is broken.
+
 ## <a name="links">🔗 Assets</a>
 
 Assets and snippets used in the project can be found in the **[video kit](https://jsm.dev/stocks-kit)**.

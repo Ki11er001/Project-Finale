@@ -105,10 +105,9 @@ export async function getHistoricalPrices(
 /**
  * Calculate technical indicators
  */
-export async function calculateTechnicalIndicators(prices: number[]) {
-  if (prices.length < 200) {
-    console.warn('Insufficient data for technical indicators');
-    return null;
+export function calculateTechnicalIndicators(prices: number[]) {
+  if (prices.length < 20) {
+    console.warn('Very limited data for technical indicators; using neutral defaults where needed');
   }
 
   // Calculate Simple Moving Averages
@@ -215,9 +214,6 @@ export async function predictStockPrice(
 
   // Calculate technical indicators
   const indicators = calculateTechnicalIndicators(closingPrices);
-  if (!indicators) {
-    throw new Error('Failed to calculate technical indicators');
-  }
 
   // Perform linear regression prediction
   const { predictedPrice: linRegPrice, trend, rSquared } = linearRegressionPredict(

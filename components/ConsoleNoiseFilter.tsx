@@ -34,12 +34,17 @@ const shouldBypassRequest = (input: RequestInfo | URL) => {
   return IGNORED_ENDPOINTS.some((endpoint) => requestUrl.includes(endpoint));
 };
 
+const shouldBypassUrl = (url: string) => {
+  return IGNORED_ENDPOINTS.some((endpoint) => url.includes(endpoint));
+};
+
 export default function ConsoleNoiseFilter() {
   useEffect(() => {
     const originalWarn = console.warn;
     const originalError = console.error;
     const originalLog = console.log;
     const originalFetch = window.fetch;
+    const originalSendBeacon = navigator.sendBeacon.bind(navigator);
 
     console.warn = (...args) => {
       if (shouldIgnore(args)) return;
@@ -64,11 +69,22 @@ export default function ConsoleNoiseFilter() {
       return originalFetch(input, init);
     };
 
+    navigator.sendBeacon = (url, data) => {
+      const target = typeof url === 'string' ? url : url.toString();
+
+      if (shouldBypassUrl(target)) {
+        return true;
+      }
+
+      return originalSendBeacon(url, data);
+    };
+
     return () => {
       console.warn = originalWarn;
       console.error = originalError;
       console.log = originalLog;
       window.fetch = originalFetch;
+      navigator.sendBeacon = originalSendBeacon;
     };
   }, []);
 

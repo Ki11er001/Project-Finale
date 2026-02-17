@@ -21,6 +21,8 @@ interface PredictionData {
   lastUpdated: string;
 }
 
+const NO_MODEL_ERROR_PREFIX = 'No trained LSTM model found for';
+
 export function LSTMPredictionCard({ symbol }: LSTMPredictionCardProps) {
   const [prediction, setPrediction] = useState<PredictionData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,19 +32,31 @@ export function LSTMPredictionCard({ symbol }: LSTMPredictionCardProps) {
     const fetchPrediction = async () => {
       try {
         setLoading(true);
+        setError(null);
+
         const response = await fetch(`/api/predictions`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ symbol, daysInFuture: 1 }),
         });
-        
+
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to fetch prediction');
+          const errorData = await response.json().catch(() => null);
+          const errorMessage = errorData?.error || 'Failed to fetch prediction';
+
+          if (response.status === 404 && errorMessage.startsWith(NO_MODEL_ERROR_PREFIX)) {
+            setPrediction(null);
+            setError(
+              'No trained prediction model is available yet for this stock. Train the model via /api/ml/train and reload this page.'
+            );
+            return;
+          }
+
+          throw new Error(errorMessage);
         }
 
         const data = await response.json();
-        
+
         // Transform API response to our format
         if (data.success && data.data) {
           const pred = data.data;
@@ -62,7 +76,7 @@ export function LSTMPredictionCard({ symbol }: LSTMPredictionCardProps) {
         }
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : 'Unknown error';
-        console.error(`Prediction error for ${symbol}:`, errorMsg);
+        console.warn(`Prediction warning for ${symbol}:`, errorMsg);
         setError(errorMsg);
         setPrediction(null);
       } finally {
@@ -169,20 +183,13 @@ export function LSTMPredictionCard({ symbol }: LSTMPredictionCardProps) {
               {prediction.confidence}
             </p>
             <p className="text-xs text-gray-600">Confidence</p>
-            <p className={`text-xs font-bold ${confidenceColor}`}>
-              {prediction.confidence === 'High'
-                ? '✓'
-                : prediction.confidence === 'Medium'
-                ? '→'
-                : '⚠'}
-            </p>
+            <p className={`text-xs ${confidenceColor}`}>{prediction.modelStatus}</p>
           </div>
         </div>
       </div>
 
-      {/* Last Updated */}
-      <p className="text-xs text-gray-500 text-center">
-        Last updated: {prediction.lastUpdated}
+      <p className="text-xs text-gray-500 text-right">
+        Updated: {prediction.lastUpdated}
       </p>
     </div>
   );

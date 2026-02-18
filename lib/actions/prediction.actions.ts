@@ -105,7 +105,7 @@ export async function getHistoricalPrices(
 /**
  * Calculate technical indicators
  */
-export function calculateTechnicalIndicators(prices: number[]) {
+function calculateTechnicalIndicators(prices: number[]) {
   if (prices.length < 20) {
     console.warn('Very limited data for technical indicators; using neutral defaults where needed');
   }

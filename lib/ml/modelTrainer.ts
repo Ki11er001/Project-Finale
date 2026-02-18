@@ -1,4 +1,5 @@
 import * as tf from '@tensorflow/tfjs';
+import '@tensorflow/tfjs-node';
 import { StockPriceModel } from '@/database/models/stockPrice.model';
 import { StockPredictionModel } from '@/database/models/prediction.model';
 import * as fs from 'fs';

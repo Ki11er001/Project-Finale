@@ -47,15 +47,32 @@ async function buildPredictionResponse(symbol: string, daysInFuture: number) {
       });
     } catch (fallbackError) {
       console.error('[Prediction API] Fallback prediction failed:', fallbackError);
-      return NextResponse.json(
-        {
-          success: false,
-          code: 'PREDICTION_UNAVAILABLE',
-          error:
-            'Prediction unavailable. LSTM model is missing and fallback model could not run. Ensure price history is imported and try again.',
+      const latestClose = await StockPriceModel.findOne(
+        { symbol },
+        { close: 1, date: 1 },
+        { sort: { date: -1 } }
+      ).lean();
+
+      const currentPrice = latestClose?.close ?? 0;
+
+      return NextResponse.json({
+        success: true,
+        source: 'fallback-unavailable',
+        notice:
+          'Prediction unavailable. LSTM model is missing and fallback model could not run. Ensure price history is imported and try again.',
+        data: {
+          symbol,
+          currentPrice: Math.round(currentPrice * 100) / 100,
+          predictedPrice: Math.round(currentPrice * 100) / 100,
+          changePercent: 0,
+          r2Score: 0,
+          rmse: 0,
+          confidence: 'Low',
+          daysAhead: daysInFuture,
+          modelStatus: 'pending',
+          lastUpdated: new Date().toISOString(),
         },
-        { status: 500 }
-      );
+      });
     }
   };
 
@@ -96,12 +113,8 @@ async function buildPredictionResponse(symbol: string, daysInFuture: number) {
 
   const predictedPrice = await predictWithModel(symbol, metadata.lookbackPeriod ?? 30);
   if (predictedPrice === null) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: `Could not generate LSTM prediction for ${symbol}. Ensure the trained model files are present and valid.`,
-      },
-      { status: 500 }
+    return await fallbackPrediction(
+      `Could not generate LSTM prediction for ${symbol}. Served fallback statistical prediction instead.`
     );
   }
 

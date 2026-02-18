@@ -1,5 +1,3 @@
-'use server';
-
 import { StockPriceModel } from '@/database/models/stockPrice.model';
 import { StockPredictionModel, type StockPrediction } from '@/database/models/prediction.model';
 
